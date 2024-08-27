@@ -30,54 +30,120 @@ void UQuestManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 
 // ==================== Quest ==================== //
 
+void UQuestManager::FinishQuest()
+{
+	ActiveQuest = nullptr;
+	AcceptingPawn = nullptr;
+}
+
+void UQuestManager::AcceptQuest(FName QuestNum, APawn* InPawn)
+{
+	AcceptingPawn = InPawn;
+	ActiveQuest = QuestsData->FindRow<FQuestInfo>(QuestNum, "");
+	Objectives = ActiveQuest->Objectives;
+	Curr = 0;
+
+	ActivateCurrentObjective();
+}
+
+// ==================== Objectives ==================== //
+
 void UQuestManager::ActivateCurrentObjective()
 {
 	if (!ActiveQuest) return;
 
-	// Check which type is the objective
-	if (ActiveQuest->Objectives[CurrentObjective].ObjectiveGoal == EObjectiveGoal::Cutscene)
-	{
-		PlayCutscene();
-	}
+	// Cutscene is handled different
+	if (Objectives[Curr].ObjectiveGoal == EObjectiveGoal::Cutscene) PlayCutscene();
+	else PrepareObjectives();
 }
 
 void UQuestManager::ContinueObjective()
 {
-	++CurrentObjective;
-
-	if (CurrentObjective < ActiveQuest->Objectives.Num()) ActivateCurrentObjective();
-	else FinishQuest();
+	DestroyInvolvedActors();
 	
+	++Curr;
+
+	if (Curr < ActiveQuest->Objectives.Num()) ActivateCurrentObjective();
+	else FinishQuest();
 }
 
-void UQuestManager::FinishQuest()
+void UQuestManager::PrepareObjectives()
 {
-	ActiveQuest = nullptr;
-	CurrentObjective = 0;
+	if (Objectives[Curr].bReplacePlayerToCertainPoint)
+	{
+		AcceptingPawn->SetActorLocationAndRotation(Objectives[Curr].PlayerReplacementPoint, Objectives[Curr].PlayerReplacementRotation);
+	}
+
+	if (Objectives[Curr].bHasMarker) PrepareMarker();
+
+	if (!Objectives[Curr].InvolvedActors.IsEmpty()) SpawnInvolvedActors();
 }
 
-void UQuestManager::AcceptQuest(FName QuestNum)
+void UQuestManager::SpawnInvolvedActors()
 {
-	ActiveQuest = QuestsData->FindRow<FQuestInfo>(QuestNum, "");
-	CurrentObjective = 0;
+	TArray<FInvolvedActor>& Actors = Objectives[Curr].InvolvedActors;
+	
+	for (int32 I = 0; I < Actors.Num(); ++I)
+	{
+		AActor* Involved = GetWorld()->SpawnActor<AActor>(Actors[I].ActorClass, Actors[I].ActorTransform);
 
-	ActivateCurrentObjective();
+		InvolvedActors.Add(I, Involved);
+	}
+}
+
+void UQuestManager::DestroyInvolvedActors()
+{
+	TArray<FInvolvedActor>& Actors = Objectives[Curr].InvolvedActors;
+	
+	for (const auto& Actor : InvolvedActors)
+	{
+		// Destroy involved actors if is not needed anymore
+		// Check is the actor still valid coz maybe its already destroyed either by killed or anything
+		if (Actor.Value && Actors[Actor.Key].bDestroyAfterFinished)
+		{
+			Actor.Value->Destroy();
+		}
+	}
+
+	InvolvedActors.Empty();
+}
+
+// ==================== Marker ==================== //
+
+void UQuestManager::PrepareMarker()
+{
+	Marker = GetWorld()->SpawnActorDeferred<AActor>(MarkerClass, Objectives[Curr].MarkerTransform);
+	Marker->OnActorBeginOverlap.AddDynamic(this, &ThisClass::MarkerOnOverlap);
+	Marker->FinishSpawning(Objectives[Curr].MarkerTransform);
+}
+
+void UQuestManager::MarkerOnOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+	if (Objectives[Curr].ObjectiveGoal == EObjectiveGoal::Marker)
+	{
+		ContinueObjective();
+	}
+	Marker->Destroy();
+	Marker = nullptr;
 }
 
 // ==================== Cutscene Handler ==================== //
 
 void UQuestManager::PlayCutscene()
 {
+	// Ignore any collision for the accepting pawn
+	AcceptingPawn->SetActorEnableCollision(false);
+	
 	// The audio
 	AudioActor = GetWorld()->SpawnActor<AAudioActor>(AudioActorClass);
 
-	FCutsceneData CutsceneData = ActiveQuest->Objectives[CurrentObjective].CutsceneData;
+	FCutsceneData CutsceneData = Objectives[Curr].CutsceneData;
 	
 	// The Widget
 	CutsceneWidget = CreateWidget<UCutsceneWidget>(GetWorld(), CutsceneWidgetClass);
 	CutsceneWidget->PlayCutscene(CutsceneData, AudioActor);
 	CutsceneWidget->AddToViewport();
-
+	
 	// Manual bind by using timer when the media is over
 	const float Delay = CutsceneData.Duration;
 	GetWorld()->GetTimerManager().SetTimer(CutsceneFinishTimer, this, &ThisClass::OnCutsceneFinished, Delay, false);
@@ -85,6 +151,9 @@ void UQuestManager::PlayCutscene()
 
 void UQuestManager::OnCutsceneFinished()
 {
+	// Re enable collision
+	AcceptingPawn->SetActorEnableCollision(true);
+	
 	// Remove cutscene
 	CutsceneWidget->RemoveFromParent();
 	CutsceneWidget = nullptr;

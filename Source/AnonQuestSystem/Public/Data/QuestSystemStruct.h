@@ -31,6 +31,9 @@ struct FInvolvedActor
 
 	UPROPERTY(EditDefaultsOnly)
 	FTransform ActorTransform;
+
+	UPROPERTY(EditDefaultsOnly)
+	bool bDestroyAfterFinished = true;
 };
 
 USTRUCT(BlueprintType)
@@ -100,7 +103,7 @@ struct FQuestObjective
 	bool bHasMarker = false;
 
 	UPROPERTY(EditDefaultsOnly, Category=Marker, meta=(EditCondition="bHasMarker", EditConditionHides))
-	FVector MarkerLocation = FVector::ZeroVector;
+	FTransform MarkerTransform;
 
 	// ===== Cutscene ===== //
 	
@@ -109,7 +112,8 @@ struct FQuestObjective
 };
 
 USTRUCT(BlueprintType)
-struct FQuestInfo : public FTableRowBase
+struct
+FQuestInfo : public FTableRowBase
 {
 	GENERATED_BODY()
 

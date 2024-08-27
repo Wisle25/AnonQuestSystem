@@ -25,26 +25,63 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
+	// ==================== References ==================== //
+
+	/** Actor that accepts the quest */
+	TWeakObjectPtr<APawn> AcceptingPawn;
+	
 	// ==================== Quests ==================== //
 
 	UPROPERTY(EditDefaultsOnly, Category=Quests)
 	TObjectPtr<UDataTable> QuestsData;
 	
 	FQuestInfo* ActiveQuest = nullptr;
+	
+	void FinishQuest();
+	
+public:
 
-	int32 CurrentObjective = 0;
+	UFUNCTION(BlueprintCallable)
+	void AcceptQuest(FName QuestNum, APawn* InPawn);
+
+private:
+	// ==================== Objectives ==================== //
+
+	TArray<FQuestObjective> Objectives;
+
+	/** Current Objective */
+	int32 Curr = 0;
 
 	void ActivateCurrentObjective();
 
 	/** Continue or finish the quest */
 	void ContinueObjective();
 
-	void FinishQuest();
-	
-public:
+	void PrepareObjectives();
 
-	UFUNCTION(BlueprintCallable)
-	void AcceptQuest(FName QuestNum);
+private:
+	// ==================== Involved Actors ==================== //
+
+	UPROPERTY()
+	TMap<int16, TObjectPtr<AActor>> InvolvedActors;
+
+	void SpawnInvolvedActors();
+
+	/** Destroy if any */
+	void DestroyInvolvedActors();
+	
+	// ==================== Marker ==================== //
+
+	UPROPERTY(EditDefaultsOnly, Category=Marker)
+	TSubclassOf<AActor> MarkerClass;
+
+	UPROPERTY()
+	TObjectPtr<AActor> Marker;
+
+	void PrepareMarker();
+
+	UFUNCTION()
+	void MarkerOnOverlap(AActor* OverlappedActor, AActor* OtherActor);
 	
 private:
 	// ==================== Cutscene Handler ==================== //
