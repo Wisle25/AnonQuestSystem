@@ -7,6 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "QuestManager.generated.h"
 
+class IQuestInterface;
 class AAudioActor;
 class UCutsceneWidget;
 
@@ -58,7 +59,15 @@ private:
 	void ContinueObjective();
 
 	void PrepareObjectives();
+	void SetObjectiveGoal();
 
+private:
+	// ==================== Items Handler ==================== //
+
+	TScriptInterface<IQuestInterface> QuestInterface;
+
+	void CheckPawnInventory();
+	
 private:
 	// ==================== Involved Actors ==================== //
 

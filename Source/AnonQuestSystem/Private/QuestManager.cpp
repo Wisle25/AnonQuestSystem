@@ -4,6 +4,7 @@
 
 #include "AudioActor.h"
 #include "CutsceneWidget.h"
+#include "QuestInterface.h"
 #include "Blueprint/UserWidget.h"
 
 UQuestManager::UQuestManager()
@@ -25,7 +26,7 @@ void UQuestManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	
+	CheckPawnInventory();
 }
 
 // ==================== Quest ==================== //
@@ -54,7 +55,11 @@ void UQuestManager::ActivateCurrentObjective()
 
 	// Cutscene is handled different
 	if (Objectives[Curr].ObjectiveGoal == EObjectiveGoal::Cutscene) PlayCutscene();
-	else PrepareObjectives();
+	else
+	{
+		PrepareObjectives();
+		SetObjectiveGoal();
+	}
 }
 
 void UQuestManager::ContinueObjective()
@@ -78,6 +83,52 @@ void UQuestManager::PrepareObjectives()
 
 	if (!Objectives[Curr].InvolvedActors.IsEmpty()) SpawnInvolvedActors();
 }
+
+void UQuestManager::SetObjectiveGoal()
+{
+	if (Objectives[Curr].ObjectiveGoal == EObjectiveGoal::Items)
+	{
+		SetComponentTickEnabled(true);
+
+		QuestInterface = AcceptingPawn.Get();
+		
+		for (const auto& RequiredItem : Objectives[Curr].RequiredItems)
+		{
+			Objectives[Curr].CurrentItems.Add(RequiredItem.Key, 0);
+		}
+	}
+}
+
+// ==================== Item Handlers ==================== //
+
+void UQuestManager::CheckPawnInventory()
+{
+	bool bHasFinished = true;
+	
+	for (const auto& RequiredItem : Objectives[Curr].RequiredItems)
+	{
+		int32 CurrentAmount = QuestInterface->GetItemCountAtInventory(RequiredItem.Key);
+		Objectives[Curr].CurrentItems[RequiredItem.Key] = CurrentAmount;
+
+		// Check the amount
+		if (CurrentAmount < RequiredItem.Value)
+		{
+			bHasFinished = false;
+
+			break;
+		}
+	}
+
+	// Already obtains required amount
+	if (bHasFinished)
+	{
+		SetComponentTickEnabled(false);
+		QuestInterface = nullptr;
+		ContinueObjective();
+	}
+}
+
+// ==================== Involved Actors ==================== //
 
 void UQuestManager::SpawnInvolvedActors()
 {
