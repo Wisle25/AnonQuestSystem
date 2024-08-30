@@ -170,14 +170,15 @@ void UQuestManager::PrepareMarker()
 
 void UQuestManager::MarkerOnOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
-	if (OtherActor != AcceptingPawn) return;
+ 	if (OtherActor != AcceptingPawn) return;
+	
+	Marker->Destroy();
+	Marker = nullptr;
 	
 	if (Objectives[Curr].ObjectiveGoal == EObjectiveGoal::Marker)
 	{
 		ContinueObjective();
 	}
-	Marker->Destroy();
-	Marker = nullptr;
 }
 
 // ==================== Cutscene Handler ==================== //
