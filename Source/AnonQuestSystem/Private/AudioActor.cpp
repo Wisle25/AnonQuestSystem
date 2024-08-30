@@ -9,5 +9,5 @@ AAudioActor::AAudioActor()
 	PrimaryActorTick.bCanEverTick = false;
 
 	MediaSound = CreateDefaultSubobject<UMediaSoundComponent>("Media Sound");
+	RootComponent = MediaSound;
 }
-

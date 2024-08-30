@@ -170,6 +170,8 @@ void UQuestManager::PrepareMarker()
 
 void UQuestManager::MarkerOnOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
+	if (OtherActor != AcceptingPawn) return;
+	
 	if (Objectives[Curr].ObjectiveGoal == EObjectiveGoal::Marker)
 	{
 		ContinueObjective();
@@ -187,7 +189,7 @@ void UQuestManager::PlayCutscene()
 	
 	// The audio
 	AudioActor = GetWorld()->SpawnActor<AAudioActor>(AudioActorClass);
-
+	
 	FCutsceneData CutsceneData = Objectives[Curr].CutsceneData;
 	
 	// The Widget
