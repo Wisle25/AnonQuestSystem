@@ -74,6 +74,12 @@ struct FQuestObjective
 	UPROPERTY(EditDefaultsOnly, Category=Goals)
 	EObjectiveGoal ObjectiveGoal = EObjectiveGoal::Items;
 
+	// ===== Enemy ===== //
+
+	/** Amount of enemy that needs to be killed */
+	UPROPERTY(EditDefaultsOnly, Category=Events, meta=(EditCondition="ObjectiveGoal=wwww=EObjectiveGoal::Enemy", EditConditionHides))
+	int32 EnemyCount = 0;
+	
 	// ===== Events (What happened when objective is active) ===== //
 
 	UPROPERTY(EditDefaultsOnly, Category=Events, meta=(EditCondition="ObjectiveGoal!=EObjectiveGoal::Cutscene", EditConditionHides))

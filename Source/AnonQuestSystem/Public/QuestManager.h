@@ -62,6 +62,14 @@ private:
 	void SetObjectiveGoal();
 
 private:
+	// ==================== Enemy Handler ==================== //
+
+	int32 CurrentEnemySlayed = 0;
+
+public:
+	void UpdateEnemySlayed();
+	
+private:
 	// ==================== Items Handler ==================== //
 
 	TScriptInterface<IQuestInterface> QuestInterface;

@@ -99,6 +99,21 @@ void UQuestManager::SetObjectiveGoal()
 	}
 }
 
+// ==================== Enemy Handler ==================== //
+
+void UQuestManager::UpdateEnemySlayed()
+{
+	if (Objectives[Curr].ObjectiveGoal != EObjectiveGoal::Enemy) return;
+
+	++CurrentEnemySlayed;
+
+	if (CurrentEnemySlayed >= Objectives[Curr].EnemyCount)
+	{
+		CurrentEnemySlayed = 0;
+		ContinueObjective();
+	}
+}
+
 // ==================== Item Handlers ==================== //
 
 void UQuestManager::CheckPawnInventory()
@@ -150,7 +165,7 @@ void UQuestManager::DestroyInvolvedActors()
 	{
 		// Destroy involved actors if is not needed anymore
 		// Check is the actor still valid coz maybe its already destroyed either by killed or anything
-		if (Actor.Value && Actors[Actor.Key].bDestroyAfterFinished)
+		if (Actor.Value && Actor.Value->GetLifeSpan() == 0.f && Actors[Actor.Key].bDestroyAfterFinished)
 		{
 			Actor.Value->Destroy();
 		}
